@@ -1,79 +1,72 @@
 import React, { Component } from "react";
 import NewsItem from "./NewsItem";
+import Spinner from "./Spinner"
 
 export class News extends Component {
-  articles = [
-    {
-      source: {
-        id: "abc-news-au",
-        name: "ABC News (AU)",
-      },
-      author: "Camron Slessor",
-      title:
-        "Indigenous culture to be celebrated as WBBL launches inaugural First Nations Round",
-      description:
-        "The WBBL will hold its first league-wide First Nations Round this season, celebrating the hundreds of traditional custodians of the land that cricket is played on.",
-      url: "http://www.abc.net.au/news/2021-11-08/womens-big-bash-league-launches-inaugural-first-nations-round/100602428",
-      urlToImage:
-        "https://live-production.wcms.abc-cdn.net.au/6e326aa35142f780cf30a3aac2faa356?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=428&width=862&height=485",
-      publishedAt: "2021-11-08T02:48:11Z",
-      content:
-        "Ella Hayward is one of just five Indigenous players currently playing in the Women's Big Bash League. Key points: <ul><li>The First Nations Round will be played from November 19-21</li><li>Each clu… [+4007 chars]",
-    },
-    {
-      source: {
-        id: "espn-cric-info",
-        name: "ESPN Cric Info",
-      },
-      author: null,
-      title:
-        "PCB hands Umar Akmal three-year ban from all cricket | ESPNcricinfo.com",
-      description:
-        "Penalty after the batsman pleaded guilty to not reporting corrupt approaches | ESPNcricinfo.com",
-      url: "http://www.espncricinfo.com/story/_/id/29103103/pcb-hands-umar-akmal-three-year-ban-all-cricket",
-      urlToImage:
-        "https://a4.espncdn.com/combiner/i?img=%2Fi%2Fcricket%2Fcricinfo%2F1099495_800x450.jpg",
-      publishedAt: "2020-04-27T11:41:47Z",
-      content:
-        "Umar Akmal's troubled cricket career has hit its biggest roadblock yet, with the PCB handing him a ban from all representative cricket for three years after he pleaded guilty of failing to report det… [+1506 chars]",
-    },
-    {
-      source: {
-        id: "espn-cric-info",
-        name: "ESPN Cric Info",
-      },
-      author: null,
-      title:
-        "What we learned from watching the 1992 World Cup final in full again | ESPNcricinfo.com",
-      description:
-        "Wides, lbw calls, swing - plenty of things were different in white-ball cricket back then | ESPNcricinfo.com",
-      url: "http://www.espncricinfo.com/story/_/id/28970907/learned-watching-1992-world-cup-final-full-again",
-      urlToImage:
-        "https://a4.espncdn.com/combiner/i?img=%2Fi%2Fcricket%2Fcricinfo%2F1219926_1296x729.jpg",
-      publishedAt: "2020-03-30T15:26:05Z",
-      content:
-        "Last week, we at ESPNcricinfo did something we have been thinking of doing for eight years now: pretend-live ball-by-ball commentary for a classic cricket match. We knew the result, yes, but we tried… [+6823 chars]",
-    },
-  ];
 
   constructor() {
     super();
     this.state = {
-          articles : this.articles,
-          loading : false
+          articles : [],
+          loading : false,
+          page :1
     }
   }
+
+  async componentDidMount(){
+    this.setState({loading : true})
+    let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=57f315a3218d4cdb94a940d1feeb389d&pageSize=${this.props.pageSize}`;
+    let data = await fetch(url);
+    let parsedData = await data.json()
+    this.setState({articles : parsedData.articles , 
+      totalResults : parsedData.totalResults,
+      loading : false
+    })
+  }
+
+  handlePreButton = async ()=>{
+    let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=57f315a3218d4cdb94a940d1feeb389d&page=${this.state.page -1}&pageSize=${this.props.pageSize}`;
+    this.setState({loading : true})
+    let data = await fetch(url);
+    let parsedData = await data.json()
+    this.setState({
+      page : this.state.page -1,
+      articles : parsedData.articles,
+      loading : false
+    })
+  }
+
+  handleNextButton = async ()=>{
+    if(!(this.state.page+1 > Math.ceil(this.state.totalResults/this.props.pageSize))){
+      let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=57f315a3218d4cdb94a940d1feeb389d&page=${this.state.page + 1}&pageSize=${this.props.pageSize}`;
+      this.setState({loading : true})
+      let data = await fetch(url);
+      let parsedData = await data.json()
+      console.log(parsedData)
+      this.setState({
+        page : this.state.page +1,
+        articles : parsedData.articles,
+        loading : false
+      })
+    }
+  }
+   
 
   render() {
     return (
       <div className="container my-4">
-        <h1>NewsMonkey - Top Headlines</h1>
+        <h1 className="text-center">NewsMonkey - Top Headlines</h1>
         <div className="row my-3">    
-          {this.state.articles.map((element)=>{
+          {!this.state.loading && this.state.articles.map((element)=>{
             return <div className="col-md-4" key={element.url}>
-                      <NewsItem title={element.title.slice(0,40)} description={element.description.slice(0,80)} imageUrl={element.urlToImage} newsUrl ={element.url}/>
+                      <NewsItem title={element.title?element.title.slice(0,40):""} description={element.description?element.description.slice(0,80):""} imageUrl={element.urlToImage} newsUrl ={element.url}/>
                     </div>
           })}
+        {this.state.loading && <Spinner/>}
+        </div>
+        <div className="container d-flex justify-content-between">
+          <button disabled={this.state.page<=1} type="button" class="btn btn-dark" onClick ={this.handlePreButton}> &larr; Next</button>
+          <button disabled={this.state.page+1 > Math.ceil(this.state.totalResults/this.props.pageSize)}  type="button" className="btn btn-dark" onClick={this.handleNextButton}>  Previous &rarr; </button>
         </div>
       </div>
     );
